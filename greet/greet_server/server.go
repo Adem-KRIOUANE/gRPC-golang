@@ -12,6 +12,7 @@ import (
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/status"
 )
 
@@ -109,9 +110,26 @@ func main() {
 	lis, err := net.Listen("tcp", "0.0.0.0:50052")
 	if err != nil {
 		log.Fatalf("Failed to listen: %v", err)
+
 	}
 
-	s := grpc.NewServer()
+	opts := []grpc.ServerOption{}
+
+	tls := false
+	if tls {
+
+		certFile := "ssl/server.crt"
+		keyFile := "ssl/server.pem"
+		creds, sslErr := credentials.NewServerTLSFromFile(certFile, keyFile)
+		if sslErr != nil {
+			log.Fatalf("Failed loading certificates: %v", sslErr)
+			return
+		}
+
+		opts = append(opts, grpc.Creds(creds))
+	}
+
+	s := grpc.NewServer(opts...)
 	greetpb.RegisterGreetServiceServer(s, &server{})
 
 	if err := s.Serve(lis); err != nil {
